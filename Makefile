@@ -6,7 +6,7 @@ all:
 	-I./deps/include \
 	./src/main.cpp \
 	./src/graph.cpp \
-	./src/editor.cpp \
+	./src/app.cpp \
 	-L./deps/lib/linux/ \
 	-lraylib -limgui -limgui-node-editor -pthread -ldl
 

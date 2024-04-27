@@ -1,4 +1,4 @@
-#include "editor.hpp"
+#include "app.hpp"
 
 #include "GLFW/glfw3.h"
 #include "graph.hpp"
@@ -6,37 +6,45 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_node_editor.h"
 #include "raylib/raylib.h"
-#include <stdexcept>
+#include "raylib/rlgl.h"
 
 namespace ed = ax::NodeEditor;
 
-Editor::Editor() {
-    GLFWwindow *window = (GLFWwindow *)GetWindowHandle();
-    if (!window) {
-        throw std::runtime_error("Failed to create the Editor, GLFW window is not "
-                                 "initialized. Did you call InitWindow beforehand?");
-    }
+App::App() {
+    InitWindow(1600, 1100, "Freska");
+    SetTargetFPS(60);
+    rlDisableBackfaceCulling();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+
+    GLFWwindow *window = (GLFWwindow *)GetWindowHandle();
     glfwGetWindowUserPointer(window);
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460 core");
-    ImGui::StyleColorsDark();
 
     ed::Config config;
     config.SettingsFile = "freska.json";
     this->context = ed::CreateEditor(&config);
+
+    this->graph = Graph();
 }
 
-Editor::~Editor() {
+App::~App() {
     ed::DestroyEditor(this->context);
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    CloseWindow();
 }
 
-void Editor::update_and_draw(Graph &graph) {
+void App::update_and_draw() {
+    BeginDrawing();
+    ClearBackground(BLANK);
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -205,4 +213,6 @@ void Editor::update_and_draw(Graph &graph) {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    EndDrawing();
 }

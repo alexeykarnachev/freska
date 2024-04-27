@@ -4,13 +4,14 @@
 
 namespace ed = ax::NodeEditor;
 
-class Editor {
+class App {
 private:
     ed::EditorContext *context;
+    Graph graph;
 
 public:
-    Editor();
-    ~Editor();
+    App();
+    ~App();
 
-    void update_and_draw(Graph &graph);
+    void update_and_draw();
 };
