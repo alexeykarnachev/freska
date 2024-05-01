@@ -22,6 +22,7 @@ enum class PinKind {
 class Pin {
 public:
     int id;
+    int node_id;
     PinType type;
     PinKind kind;
     std::string name;
@@ -59,6 +60,7 @@ private:
     std::unordered_map<int, Pin> pins;
     std::unordered_map<int, Node> nodes;
     std::unordered_map<int, Link> links;
+    std::unordered_map<std::string, Node> node_templates;
 
 public:
     Graph();
@@ -77,4 +79,5 @@ public:
 
     const std::unordered_map<int, Node> &get_nodes() const;
     const std::unordered_map<int, Link> &get_links() const;
+    const std::unordered_map<std::string, Node> &get_node_templates() const;
 };

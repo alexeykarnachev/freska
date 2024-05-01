@@ -66,31 +66,11 @@ void App::update_and_draw() {
     if (ImGui::BeginPopup("Create New Node")) {
 
         int node_id = -1;
-        if (ImGui::MenuItem("Video Source")) {
-            node_id = graph.create_node(Node(
-                "Video Source",
-                {
-                    Pin(PinType::FLOAT, PinKind::INPUT, "Float"),
-                    Pin(PinType::TEXTURE, PinKind::INPUT, "Texture"),
-                    Pin(PinType::TEXTURE, PinKind::OUTPUT, "Texture"),
-                }
-            ));
-        }
-        if (ImGui::MenuItem("Color Correction")) {
-            node_id = graph.create_node(Node(
-                "Color Correction",
-                {
-                    Pin(PinType::FLOAT, PinKind::INPUT, "Float"),
-                    Pin(PinType::INTEGER, PinKind::INPUT, "Integer"),
-                    Pin(PinType::TEXTURE, PinKind::OUTPUT, "Texture"),
-                }
-            ));
-        }
-        if (ImGui::MenuItem("Color Quantization")) {
-        }
-        if (ImGui::MenuItem("Color Outline")) {
-        }
-        if (ImGui::MenuItem("Camera Effects")) {
+        for (auto [name, node] : graph.get_node_templates()) {
+            if (ImGui::MenuItem(name.c_str())) {
+                node_id = graph.create_node(node);
+                break;
+            }
         }
 
         if (node_id != -1) {

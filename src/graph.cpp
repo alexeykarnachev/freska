@@ -25,7 +25,26 @@ Link::Link(int start_pin_id, int end_pin_id)
     : start_pin_id(start_pin_id)
     , end_pin_id(end_pin_id) {}
 
-Graph::Graph() = default;
+Graph::Graph() {
+    this->node_templates["Video Source"] = Node(
+        "Video Source",
+        {
+            Pin(PinType::TEXTURE, PinKind::OUTPUT, "texture"),
+        }
+    );
+
+    this->node_templates["Color Correction"] = Node(
+        "Color Correction",
+        {
+            Pin(PinType::TEXTURE, PinKind::OUTPUT, "texture"),
+            Pin(PinType::FLOAT, PinKind::INPUT, "brightness"),
+            Pin(PinType::FLOAT, PinKind::INPUT, "saturation"),
+            Pin(PinType::FLOAT, PinKind::INPUT, "contrast"),
+            Pin(PinType::FLOAT, PinKind::INPUT, "temperature"),
+            Pin(PinType::TEXTURE, PinKind::INPUT, "texture"),
+        }
+    );
+}
 
 const Pin &Graph::get_pin(int pin_id) {
     return this->pins[pin_id];
@@ -65,6 +84,29 @@ void Graph::delete_link(int link_id) {
 }
 
 bool Graph::can_create_link(Link link) {
+    auto start_pin = this->pins[link.start_pin_id];
+    auto end_pin = this->pins[link.end_pin_id];
+
+    // can connect only OUTPUT to INPUT
+    if (start_pin.kind != PinKind::OUTPUT || end_pin.kind != PinKind::INPUT) {
+        return false;
+    }
+
+    // can connect only the same pin types
+    if (start_pin.type != end_pin.type) {
+        return false;
+    }
+
+    // can connect only pins from different nodes
+    if (start_pin.node_id == end_pin.node_id) {
+        return false;
+    }
+
+    // end pin must not be connected yet
+    if (end_pin.link_ids.size() != 0) {
+        return false;
+    }
+
     return true;
 }
 
@@ -89,6 +131,7 @@ int Graph::create_node(Node node) {
     node.id = get_next_id();
     for (auto &pin : node.pins) {
         pin.id = get_next_id();
+        pin.node_id = node.id;
         pin.link_ids.clear();
         this->pins[pin.id] = pin;
     }
@@ -103,4 +146,8 @@ const std::unordered_map<int, Node> &Graph::get_nodes() const {
 
 const std::unordered_map<int, Link> &Graph::get_links() const {
     return this->links;
+}
+
+const std::unordered_map<std::string, Node> &Graph::get_node_templates() const {
+    return this->node_templates;
 }
