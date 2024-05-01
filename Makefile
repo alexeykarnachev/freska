@@ -8,7 +8,7 @@ all:
 	./src/graph.cpp \
 	./src/app.cpp \
 	-L./deps/lib/linux/ \
-	-lraylib -limgui -limgui-node-editor -pthread -ldl
+	-lopencv_videoio -lopencv_imgcodecs -lopencv_imgproc -lopencv_core -limgui -lraylib -limgui -limgui-node-editor -llibopenjp2 -llibjpeg-turbo -lzlib -lpthread -ldl
 
 
 
