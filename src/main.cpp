@@ -4,9 +4,9 @@
 
 int main() {
 
-    App editor;
+    App app;
 
     while (!WindowShouldClose()) {
-        editor.update_and_draw();
+        app.update_and_draw();
     }
 }

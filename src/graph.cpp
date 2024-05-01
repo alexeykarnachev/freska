@@ -16,21 +16,38 @@ Pin::Pin(PinType type, PinKind kind, std::string name)
     , name(name) {}
 
 Node::Node() = default;
-Node::Node(std::string name, std::vector<Pin> pins)
+Node::Node(std::string name, std::vector<Pin> pins, void (*update)(Node *))
     : name(name)
-    , pins(pins) {}
+    , pins(pins)
+    , update(update) {}
 
 Link::Link() = default;
 Link::Link(int start_pin_id, int end_pin_id)
     : start_pin_id(start_pin_id)
     , end_pin_id(end_pin_id) {}
 
+void update_video_source(Node *node) {
+    printf("Updating video source node\n");
+}
+
+void update_color_correction(Node *node) {
+    printf("Updating color correction node\n");
+}
+
+void Graph::update() {
+    // TODO: this is incorrect! Nodes must be sorted topologically
+    for (auto &[name, node] : this->nodes) {
+        if (node.update) node.update(&node);
+    }
+}
+
 Graph::Graph() {
     this->node_templates["Video Source"] = Node(
         "Video Source",
         {
             Pin(PinType::TEXTURE, PinKind::OUTPUT, "texture"),
-        }
+        },
+        update_video_source
     );
 
     this->node_templates["Color Correction"] = Node(
@@ -42,7 +59,8 @@ Graph::Graph() {
             Pin(PinType::FLOAT, PinKind::INPUT, "contrast"),
             Pin(PinType::FLOAT, PinKind::INPUT, "temperature"),
             Pin(PinType::TEXTURE, PinKind::INPUT, "texture"),
-        }
+        },
+        update_color_correction
     );
 }
 

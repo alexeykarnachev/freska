@@ -1,5 +1,5 @@
 #pragma once
-#include <iterator>
+#include "raylib/raylib.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -19,12 +19,19 @@ enum class PinKind {
     OUTPUT,
 };
 
+union PinValue {
+    int int_value;
+    float float_value;
+    Texture texture_value;
+};
+
 class Pin {
 public:
     int id;
     int node_id;
     PinType type;
     PinKind kind;
+    PinValue value;
     std::string name;
     std::unordered_set<int> link_ids;
 
@@ -38,8 +45,11 @@ public:
     std::string name;
     std::vector<Pin> pins;
 
+    void *context = nullptr;
+    void (*update)(Node *) = nullptr;
+
     Node();
-    Node(std::string name, std::vector<Pin> pins);
+    Node(std::string name, std::vector<Pin> pins, void (*update)(Node *));
 };
 
 class Link {
@@ -76,6 +86,8 @@ public:
 
     int create_link(Link link);
     int create_node(Node node);
+
+    void update();
 
     const std::unordered_map<int, Node> &get_nodes() const;
     const std::unordered_map<int, Link> &get_links() const;

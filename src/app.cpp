@@ -8,8 +8,6 @@
 #include "raylib/raylib.h"
 #include "raylib/rlgl.h"
 
-namespace ed = ax::NodeEditor;
-
 App::App() {
     InitWindow(1600, 1100, "Freska");
     SetTargetFPS(60);
@@ -185,6 +183,10 @@ void App::update_and_draw() {
     for (auto &[_, link] : graph.get_links()) {
         ed::Link(link.id, link.start_pin_id, link.end_pin_id);
     }
+
+    // ---------------------------------------------------------------
+    // update graph
+    graph.update();
 
     // ---------------------------------------------------------------
     // finalize drawing
