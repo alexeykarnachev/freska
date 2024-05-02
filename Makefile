@@ -1,6 +1,6 @@
 all:
 	g++ \
-	-std=c++17 \
+	-std=c++2a \
 	-Wall -pedantic \
 	-o freska \
 	-I./deps/include \

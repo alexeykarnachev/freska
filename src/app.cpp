@@ -2,6 +2,7 @@
 
 #include "GLFW/glfw3.h"
 #include "graph.hpp"
+#include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_node_editor.h"
@@ -171,6 +172,10 @@ void App::update_and_draw() {
             if (pin.kind != PinKind::OUTPUT) continue;
             ed::BeginPin(pin.id, ed::PinKind::Output);
             ImGui::TextUnformatted(pin.name.c_str());
+            if (pin.type == PinType::TEXTURE) {
+                int id = pin.value.texture_value.id;
+                ImGui::Image((ImTextureID)(long)id, {100.0, 100.0});
+            }
             ed::EndPin();
         }
         ImGui::EndGroup();
