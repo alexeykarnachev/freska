@@ -9,20 +9,16 @@ class Node;
 class Link;
 
 enum class PinType {
-    INTEGER,
+    INT,
     FLOAT,
+    COLOR,
     TEXTURE,
 };
 
 enum class PinKind {
     INPUT,
     OUTPUT,
-};
-
-union PinValue {
-    int int_value;
-    float float_value;
-    Texture texture_value;
+    MANUAL,
 };
 
 class Pin {
@@ -31,12 +27,32 @@ public:
     int node_id;
     PinType type;
     PinKind kind;
-    PinValue value;
     std::string name;
     std::unordered_set<int> link_ids;
+    union {
+        struct {
+            int val;
+            int min;
+            int max;
+        } _int;
+
+        struct {
+            float val;
+            float min;
+            float max;
+        } _float;
+
+        Vector3 _color;
+        Texture _texture;
+    };
 
     Pin();
-    Pin(PinType type, PinKind kind, std::string name);
+    static Pin create_int(PinKind kind, std::string name, int val, int min, int max);
+    static Pin create_float(
+        PinKind kind, std::string name, float val, float min, float max
+    );
+    static Pin create_color(PinKind kind, std::string name, Vector3 val);
+    static Pin create_texture(PinKind kind, std::string name);
 };
 
 class Node {
@@ -66,18 +82,13 @@ enum class PinType;
 enum class PinKind;
 
 class Graph {
-private:
-    std::unordered_map<int, Pin> pins;
+public:
+    std::unordered_map<int, Pin *> pins;
     std::unordered_map<int, Node> nodes;
     std::unordered_map<int, Link> links;
     std::unordered_map<std::string, Node> node_templates;
 
-public:
     Graph();
-
-    const Pin &get_pin(int pin_id);
-    const Node &get_node(int node_id);
-    const Link &get_link(int link_id);
 
     void delete_node(int node_id);
     void delete_link(int link_id);
@@ -88,8 +99,4 @@ public:
     int create_node(Node node);
 
     void update();
-
-    const std::unordered_map<int, Node> &get_nodes() const;
-    const std::unordered_map<int, Link> &get_links() const;
-    const std::unordered_map<std::string, Node> &get_node_templates() const;
 };

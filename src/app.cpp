@@ -65,7 +65,7 @@ void App::update_and_draw() {
     if (ImGui::BeginPopup("Create New Node")) {
 
         int node_id = -1;
-        for (auto [name, node] : graph.get_node_templates()) {
+        for (auto [name, node] : graph.node_templates) {
             if (ImGui::MenuItem(name.c_str())) {
                 node_id = graph.create_node(node);
                 break;
@@ -153,10 +153,11 @@ void App::update_and_draw() {
 
     // ---------------------------------------------------------------
     // draw nodes
-    for (auto &[_, node] : graph.get_nodes()) {
+    for (auto &[_, node] : graph.nodes) {
         ed::BeginNode(node.id);
         ImGui::TextUnformatted(node.name.c_str());
 
+        // input pins
         ImGui::BeginGroup();
         for (auto &pin : node.pins) {
             if (pin.kind != PinKind::INPUT) continue;
@@ -166,6 +167,35 @@ void App::update_and_draw() {
         }
         ImGui::EndGroup();
 
+        // local pins
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        for (auto &pin : node.pins) {
+            if (pin.kind != PinKind::MANUAL) continue;
+
+            auto name = pin.name.c_str();
+
+            ImGui::PushID(pin.id);
+            ImGui::SetNextItemWidth(150.0);
+            switch (pin.type) {
+                case PinType::FLOAT:
+                    ImGui::SliderFloat(
+                        name, &pin._float.val, pin._float.min, pin._float.max
+                    );
+                    break;
+                case PinType::INT:
+                    ImGui::SliderInt(name, &pin._int.val, pin._int.min, pin._int.max);
+                    break;
+                case PinType::COLOR:
+                    ImGui::ColorPicker3(name, reinterpret_cast<float *>(&pin._color));
+                    break;
+                case PinType::TEXTURE: ImGui::TextUnformatted(name); break;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndGroup();
+
+        // output pins
         ImGui::SameLine();
         ImGui::BeginGroup();
         for (auto &pin : node.pins) {
@@ -173,8 +203,11 @@ void App::update_and_draw() {
             ed::BeginPin(pin.id, ed::PinKind::Output);
             ImGui::TextUnformatted(pin.name.c_str());
             if (pin.type == PinType::TEXTURE) {
-                int id = pin.value.texture_value.id;
-                ImGui::Image((ImTextureID)(long)id, {100.0, 100.0});
+                int id = pin._texture.id;
+                float aspect = (float)pin._texture.width / pin._texture.height;
+                float width = 200.0;
+                float height = width / aspect;
+                ImGui::Image((ImTextureID)(long)id, {width, height});
             }
             ed::EndPin();
         }
@@ -185,7 +218,7 @@ void App::update_and_draw() {
 
     // ---------------------------------------------------------------
     // draw links
-    for (auto &[_, link] : graph.get_links()) {
+    for (auto &[_, link] : graph.links) {
         ed::Link(link.id, link.start_pin_id, link.end_pin_id);
     }
 
@@ -201,5 +234,6 @@ void App::update_and_draw() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+    DrawFPS(0, 0);
     EndDrawing();
 }
