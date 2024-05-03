@@ -131,6 +131,11 @@ private:
     Shader shader;
 
     void set_shader_values(std::vector<Pin> &pins) {
+        float time = GetTime();
+        SetShaderValue(
+            shader, GetShaderLocation(shader, "time"), &time, SHADER_UNIFORM_FLOAT
+        );
+
         for (auto &pin : pins) {
             if (pin.kind == PinKind::OUTPUT) continue;
             int loc = GetShaderLocation(shader, pin.name.c_str());
@@ -248,6 +253,10 @@ Node::~Node() {
     delete (NodeContext *)context;
 }
 
+NodeFactory::NodeFactory(std::string name, std::function<std::shared_ptr<Node>()> fn)
+    : name(name)
+    , create(fn) {}
+
 Link::Link() = default;
 Link::Link(int start_pin_id, int end_pin_id)
     : start_pin_id(start_pin_id)
@@ -321,7 +330,7 @@ std::shared_ptr<Node> create_color_quantization_node() {
     return node;
 }
 
-std::shared_ptr<Node> create_color_outline() {
+std::shared_ptr<Node> create_color_outline_node() {
     auto name = "Color Outline";
     auto context = new FrameProcessingContext("color_outline.frag");
     auto pins = {
@@ -336,11 +345,31 @@ std::shared_ptr<Node> create_color_outline() {
     return node;
 }
 
+std::shared_ptr<Node> create_old_tv_node() {
+    auto name = "Old TV";
+    auto context = new FrameProcessingContext("old_tv.frag");
+    auto pins = {
+        Pin::create_texture(PinKind::INPUT, "frame"),
+        Pin::create_float(PinKind::MANUAL, "vert_jerk", 0.0, 0.0, 1.0),
+        Pin::create_float(PinKind::MANUAL, "vert_movement", 0.0, 0.0, 1.0),
+        Pin::create_float(PinKind::MANUAL, "bottom_static", 0.0, 0.0, 10.0),
+        Pin::create_float(PinKind::MANUAL, "scanlines", 0.0, 0.0, 10.0),
+        Pin::create_float(PinKind::MANUAL, "rgb_offset", 0.0, 0.0, 10.0),
+        Pin::create_float(PinKind::MANUAL, "horz_fuzz", 0.0, 0.0, 10.0),
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
+}
+
 Graph::Graph() {
-    this->node_factory["Video Source"] = create_video_source_node;
-    this->node_factory["Color Correction"] = create_color_correction_node;
-    this->node_factory["Color Quantization"] = create_color_quantization_node;
-    this->node_factory["Color Outline"] = create_color_outline;
+    this->node_factories.emplace_back("Vide Source", create_video_source_node);
+    this->node_factories.emplace_back("Color Correction", create_color_correction_node);
+    this->node_factories.emplace_back(
+        "Color Quantization", create_color_quantization_node
+    );
+    this->node_factories.emplace_back("Color Outline", create_color_outline_node);
+    this->node_factories.emplace_back("Old TV", create_old_tv_node);
 }
 
 void Graph::delete_node(int node_id) {

@@ -76,6 +76,13 @@ public:
     Node(std::string name, std::vector<Pin> pins, NodeContext *context);
 };
 
+class NodeFactory {
+public:
+    std::string name;
+    std::function<std::shared_ptr<Node>()> create;
+    NodeFactory(std::string name, std::function<std::shared_ptr<Node>()> fn);
+};
+
 class Link {
 public:
     int id;
@@ -94,7 +101,7 @@ public:
     std::unordered_map<int, Pin *> pins;
     std::unordered_map<int, std::shared_ptr<Node>> nodes;
     std::unordered_map<int, Link> links;
-    std::unordered_map<std::string, std::function<std::shared_ptr<Node>()>> node_factory;
+    std::vector<NodeFactory> node_factories;
 
     Graph();
 
