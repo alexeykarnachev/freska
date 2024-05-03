@@ -202,7 +202,7 @@ void App::update_and_draw() {
             if (pin.kind != PinKind::OUTPUT) continue;
             ed::BeginPin(pin.id, ed::PinKind::Output);
             ImGui::TextUnformatted(pin.name.c_str());
-            if (pin.type == PinType::TEXTURE) {
+            if (pin.type == PinType::TEXTURE && IsTextureReady(pin._texture)) {
                 int id = pin._texture.id;
                 float aspect = (float)pin._texture.width / pin._texture.height;
                 float width = 200.0;

@@ -12,6 +12,7 @@
 #include <functional>
 #include <mutex>
 #include <stdexcept>
+#include <stdio.h>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -223,6 +224,7 @@ Pin Pin::create_float(PinKind kind, std::string name, float val, float min, floa
 Pin Pin::create_texture(PinKind kind, std::string name) {
     Pin pin;
     pin.type = PinType::TEXTURE;
+    pin._texture.id = 0;
     pin.kind = kind;
     pin.name = name;
     return pin;
@@ -313,17 +315,33 @@ Node create_color_quantization_node() {
     return Node(name, pins, context);
 }
 
+Node create_color_outline() {
+    auto name = "Color Outline";
+    auto context = new FrameProcessingContext("color_outline.frag");
+    auto pins = {
+        Pin::create_texture(PinKind::INPUT, "frame"),
+        Pin::create_color(PinKind::MANUAL, "color", {0.0, 0.0, 0.0}),
+        Pin::create_float(PinKind::MANUAL, "threshold", 0.06, 0.0, 0.2),
+        Pin::create_int(PinKind::MANUAL, "n_samples", 64, 4, 87),
+        Pin::create_int(PinKind::MANUAL, "radius", 16, 1, 32),
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    return Node(name, pins, context);
+}
+
 Graph::Graph() {
     this->node_factory["Video Source"] = create_video_source_node;
     this->node_factory["Color Correction"] = create_color_correction_node;
     this->node_factory["Color Quantization"] = create_color_quantization_node;
+    this->node_factory["Color Outline"] = create_color_outline;
 }
 
 void Graph::delete_node(int node_id) {
     auto &node = this->nodes[node_id];
 
     for (auto &pin : node.pins) {
-        for (int link_id : pin.link_ids) {
+        auto link_ids = pin.link_ids;
+        for (int link_id : link_ids) {
             this->delete_link(link_id);
         }
 
