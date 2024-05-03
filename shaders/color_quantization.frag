@@ -1,6 +1,5 @@
 /* vim: set filetype=glsl : */
 
-
 in vec2 vs_uv;
 
 uniform sampler2D frame;
@@ -15,7 +14,7 @@ float quantize(float x, float n_levels) {
 }
 
 vec3 quantize_color(vec3 color, float n_levels) {
-    if(n_levels == 0.0) {
+    if (n_levels == 0.0) {
         return color;
     }
     vec3 hsv = rgb2hsv(color);
@@ -26,11 +25,11 @@ vec3 quantize_color(vec3 color, float n_levels) {
 
 void main() {
     vec3 color = sample_texture(
-        frame,
-        vs_uv,
-        float(n_samples),
-        float(radius)
-    );
+            frame,
+            vs_uv,
+            float(n_samples),
+            float(radius)
+        );
     color = quantize_color(color, float(n_levels));
     fs_color = vec4(color, 1.0);
 }
