@@ -117,18 +117,15 @@ public:
     }
 
     void update(Node *node) override {
-        if (!node->context) node->context = new VideoSourceContext();
-        auto context = (VideoSourceContext *)node->context;
-
         // TODO: put pins in some kind of map and access them by name,
         // not by index
-        node->pins[0]._texture = context->get_texture();
+        node->pins[0]._texture = get_texture();
     }
 };
 
 // -----------------------------------------------------------------------
 // color correction node
-class ColorCorrectionContext : public NodeContext {
+class FrameProcessingContext : public NodeContext {
 private:
     Shader shader;
 
@@ -157,12 +154,12 @@ private:
 public:
     RenderTexture render_texture;
 
-    ColorCorrectionContext() {
-        shader = load_shader("screen_rect.vert", "color_correction.frag");
+    FrameProcessingContext(std::string fs_file_name) {
+        shader = load_shader("screen_rect.vert", fs_file_name);
         render_texture.id = 0;
     }
 
-    ~ColorCorrectionContext() {
+    ~FrameProcessingContext() {
         UnloadShader(shader);
         UnloadRenderTexture(render_texture);
     }
@@ -188,10 +185,8 @@ public:
     }
 
     void update(Node *node) override {
-        if (!node->context) node->context = new ColorCorrectionContext();
-        auto context = (ColorCorrectionContext *)node->context;
-        context->draw(node->pins);
-        node->pins.back()._texture = context->render_texture.texture;
+        draw(node->pins);
+        node->pins.back()._texture = render_texture.texture;
     }
 };
 
@@ -290,7 +285,7 @@ Node create_video_source_node() {
 
 Node create_color_correction_node() {
     auto name = "Color Correction";
-    auto context = new ColorCorrectionContext();
+    auto context = new FrameProcessingContext("color_correction.frag");
     auto pins = {
         Pin::create_texture(PinKind::INPUT, "frame"),
         Pin::create_color(PinKind::MANUAL, "white_balance", {1.0, 1.0, 1.0}),
@@ -305,9 +300,23 @@ Node create_color_correction_node() {
     return Node(name, pins, context);
 }
 
+Node create_color_quantization_node() {
+    auto name = "Color Quantization";
+    auto context = new FrameProcessingContext("color_quantization.frag");
+    auto pins = {
+        Pin::create_texture(PinKind::INPUT, "frame"),
+        Pin::create_int(PinKind::MANUAL, "n_levels", 4, 1, 16),
+        Pin::create_int(PinKind::MANUAL, "n_samples", 64, 4, 87),
+        Pin::create_int(PinKind::MANUAL, "radius", 16, 1, 32),
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    return Node(name, pins, context);
+}
+
 Graph::Graph() {
     this->node_factory["Video Source"] = create_video_source_node;
     this->node_factory["Color Correction"] = create_color_correction_node;
+    this->node_factory["Color Quantization"] = create_color_quantization_node;
 }
 
 void Graph::delete_node(int node_id) {
