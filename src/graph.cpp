@@ -374,6 +374,18 @@ std::shared_ptr<Node> create_fisheye_node() {
     return node;
 }
 
+std::shared_ptr<Node> create_pixelization_node() {
+    auto name = "Pixelization";
+    auto context = new FrameProcessingContext("pixelization.frag");
+    auto pins = {
+        Pin::create_texture(PinKind::INPUT, "frame"),
+        Pin::create_int(PinKind::MANUAL, "pixel_size", 4, 1, 16),
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
+}
+
 Graph::Graph() {
     this->node_factories.emplace_back("Vide Source", create_video_source_node);
     this->node_factories.emplace_back("Color Correction", create_color_correction_node);
@@ -383,6 +395,7 @@ Graph::Graph() {
     this->node_factories.emplace_back("Color Outline", create_color_outline_node);
     this->node_factories.emplace_back("Old TV", create_old_tv_node);
     this->node_factories.emplace_back("Fisheye", create_fisheye_node);
+    this->node_factories.emplace_back("Pixelization", create_pixelization_node);
 }
 
 void Graph::delete_node(int node_id) {

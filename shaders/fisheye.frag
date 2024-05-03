@@ -4,7 +4,6 @@ in vec2 vs_uv;
 
 uniform sampler2D frame;
 uniform float strength;
-uniform float time;
 
 out vec4 fs_color;
 
