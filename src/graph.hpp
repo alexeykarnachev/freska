@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib/raylib.h"
 #include <functional>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -59,7 +60,7 @@ public:
 class NodeContext {
 public:
     virtual ~NodeContext() {}
-    virtual void update(Node *node) = 0;
+    virtual void update(std::shared_ptr<Node>) = 0;
 };
 
 class Node {
@@ -71,6 +72,7 @@ public:
     NodeContext *context;
 
     Node();
+    ~Node();
     Node(std::string name, std::vector<Pin> pins, NodeContext *context);
 };
 
@@ -90,9 +92,9 @@ enum class PinKind;
 class Graph {
 public:
     std::unordered_map<int, Pin *> pins;
-    std::unordered_map<int, Node> nodes;
+    std::unordered_map<int, std::shared_ptr<Node>> nodes;
     std::unordered_map<int, Link> links;
-    std::unordered_map<std::string, std::function<Node()>> node_factory;
+    std::unordered_map<std::string, std::function<std::shared_ptr<Node>()>> node_factory;
 
     Graph();
 
@@ -102,7 +104,7 @@ public:
     bool can_create_link(Link link);
 
     int create_link(Link link);
-    int create_node(Node node);
+    int create_node(std::shared_ptr<Node> node);
 
     void update();
 };

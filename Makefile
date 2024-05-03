@@ -2,7 +2,6 @@ all:
 	g++ \
 	-std=c++2a \
 	-Wall -pedantic \
-	-g -fsanitize=address \
 	-o freska \
 	-I./deps/include \
 	./src/main.cpp \

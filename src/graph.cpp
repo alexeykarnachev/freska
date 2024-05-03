@@ -10,9 +10,9 @@
 #include <cstdio>
 #include <fstream>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
-#include <stdio.h>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -117,7 +117,7 @@ public:
         return texture;
     }
 
-    void update(Node *node) override {
+    void update(std::shared_ptr<Node> node) override {
         // TODO: put pins in some kind of map and access them by name,
         // not by index
         node->pins[0]._texture = get_texture();
@@ -185,7 +185,7 @@ public:
         EndTextureMode();
     }
 
-    void update(Node *node) override {
+    void update(std::shared_ptr<Node> node) override {
         draw(node->pins);
         node->pins.back()._texture = render_texture.texture;
     }
@@ -244,6 +244,9 @@ Node::Node(std::string name, std::vector<Pin> pins, NodeContext *context)
     : name(name)
     , pins(pins)
     , context(context) {}
+Node::~Node() {
+    delete (NodeContext *)context;
+}
 
 Link::Link() = default;
 Link::Link(int start_pin_id, int end_pin_id)
@@ -252,8 +255,8 @@ Link::Link(int start_pin_id, int end_pin_id)
 
 void Graph::update() {
     // TODO: this is incorrect! Nodes must be sorted topologically
-    for (auto &[name, node] : this->nodes) {
-        node.context->update(&node);
+    for (auto [name, node] : this->nodes) {
+        node->context->update(node);
     }
 
     for (auto &[_, link] : this->links) {
@@ -276,16 +279,17 @@ void Graph::update() {
     }
 }
 
-Node create_video_source_node() {
+std::shared_ptr<Node> create_video_source_node() {
     auto name = "Video Source";
     auto context = new VideoSourceContext();
     auto pins = {
         Pin::create_texture(PinKind::OUTPUT, "frame"),
     };
-    return Node(name, pins, context);
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
 }
 
-Node create_color_correction_node() {
+std::shared_ptr<Node> create_color_correction_node() {
     auto name = "Color Correction";
     auto context = new FrameProcessingContext("color_correction.frag");
     auto pins = {
@@ -299,10 +303,11 @@ Node create_color_correction_node() {
         Pin::create_float(PinKind::MANUAL, "gamma", 1.0, 0.0, 4.0),
         Pin::create_texture(PinKind::OUTPUT, "frame"),
     };
-    return Node(name, pins, context);
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
 }
 
-Node create_color_quantization_node() {
+std::shared_ptr<Node> create_color_quantization_node() {
     auto name = "Color Quantization";
     auto context = new FrameProcessingContext("color_quantization.frag");
     auto pins = {
@@ -312,10 +317,11 @@ Node create_color_quantization_node() {
         Pin::create_int(PinKind::MANUAL, "radius", 16, 1, 32),
         Pin::create_texture(PinKind::OUTPUT, "frame"),
     };
-    return Node(name, pins, context);
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
 }
 
-Node create_color_outline() {
+std::shared_ptr<Node> create_color_outline() {
     auto name = "Color Outline";
     auto context = new FrameProcessingContext("color_outline.frag");
     auto pins = {
@@ -326,7 +332,8 @@ Node create_color_outline() {
         Pin::create_int(PinKind::MANUAL, "radius", 16, 1, 32),
         Pin::create_texture(PinKind::OUTPUT, "frame"),
     };
-    return Node(name, pins, context);
+    std::shared_ptr<Node> node(new Node(name, pins, context));
+    return node;
 }
 
 Graph::Graph() {
@@ -337,9 +344,9 @@ Graph::Graph() {
 }
 
 void Graph::delete_node(int node_id) {
-    auto &node = this->nodes[node_id];
+    auto node = this->nodes[node_id];
 
-    for (auto &pin : node.pins) {
+    for (auto &pin : node->pins) {
         auto link_ids = pin.link_ids;
         for (int link_id : link_ids) {
             this->delete_link(link_id);
@@ -348,11 +355,7 @@ void Graph::delete_node(int node_id) {
         this->pins.erase(pin.id);
     }
 
-    if (node.context) {
-        delete (NodeContext *)node.context;
-    }
-
-    this->nodes.erase(node.id);
+    this->nodes.erase(node->id);
 }
 
 void Graph::delete_link(int link_id) {
@@ -410,18 +413,17 @@ int Graph::create_link(Link link) {
     return link.id;
 }
 
-int Graph::create_node(Node node) {
+int Graph::create_node(std::shared_ptr<Node> node) {
     int id = get_next_id();
-    this->nodes[id] = node;
-    Node &n = this->nodes[id];
-    n.id = id;
+    node->id = id;
 
-    for (auto &pin : n.pins) {
+    for (auto &pin : node->pins) {
         pin.id = get_next_id();
-        pin.node_id = n.id;
+        pin.node_id = id;
         pin.link_ids.clear();
         this->pins[pin.id] = &pin;
     }
 
-    return n.id;
+    this->nodes[id] = node;
+    return id;
 }

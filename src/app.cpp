@@ -153,13 +153,13 @@ void App::update_and_draw() {
 
     // ---------------------------------------------------------------
     // draw nodes
-    for (auto &[_, node] : graph.nodes) {
-        ed::BeginNode(node.id);
-        ImGui::TextUnformatted(node.name.c_str());
+    for (auto [_, node] : graph.nodes) {
+        ed::BeginNode(node->id);
+        ImGui::TextUnformatted(node->name.c_str());
 
         // input pins
         ImGui::BeginGroup();
-        for (auto &pin : node.pins) {
+        for (auto &pin : node->pins) {
             if (pin.kind != PinKind::INPUT) continue;
             ed::BeginPin(pin.id, ed::PinKind::Input);
             ImGui::TextUnformatted(pin.name.c_str());
@@ -170,7 +170,7 @@ void App::update_and_draw() {
         // local pins
         ImGui::SameLine();
         ImGui::BeginGroup();
-        for (auto &pin : node.pins) {
+        for (auto &pin : node->pins) {
             if (pin.kind != PinKind::MANUAL) continue;
 
             auto name = pin.name.c_str();
@@ -198,7 +198,7 @@ void App::update_and_draw() {
         // output pins
         ImGui::SameLine();
         ImGui::BeginGroup();
-        for (auto &pin : node.pins) {
+        for (auto &pin : node->pins) {
             if (pin.kind != PinKind::OUTPUT) continue;
             ed::BeginPin(pin.id, ed::PinKind::Output);
             ImGui::TextUnformatted(pin.name.c_str());
