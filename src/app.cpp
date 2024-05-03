@@ -65,9 +65,9 @@ void App::update_and_draw() {
     if (ImGui::BeginPopup("Create New Node")) {
 
         int node_id = -1;
-        for (auto [name, node] : graph.node_templates) {
+        for (auto [name, fn] : graph.node_factory) {
             if (ImGui::MenuItem(name.c_str())) {
-                node_id = graph.create_node(node);
+                node_id = graph.create_node(fn());
                 break;
             }
         }

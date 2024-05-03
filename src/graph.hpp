@@ -1,5 +1,6 @@
 #pragma once
 #include "raylib/raylib.h"
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -55,17 +56,22 @@ public:
     static Pin create_texture(PinKind kind, std::string name);
 };
 
+class NodeContext {
+public:
+    virtual ~NodeContext() {}
+    virtual void update(Node *node) = 0;
+};
+
 class Node {
 public:
     int id;
     std::string name;
     std::vector<Pin> pins;
 
-    void *context = nullptr;
-    void (*update)(Node *) = nullptr;
+    NodeContext *context;
 
     Node();
-    Node(std::string name, std::vector<Pin> pins, void (*update)(Node *));
+    Node(std::string name, std::vector<Pin> pins, NodeContext *context);
 };
 
 class Link {
@@ -86,7 +92,7 @@ public:
     std::unordered_map<int, Pin *> pins;
     std::unordered_map<int, Node> nodes;
     std::unordered_map<int, Link> links;
-    std::unordered_map<std::string, Node> node_templates;
+    std::unordered_map<std::string, std::function<Node()>> node_factory;
 
     Graph();
 

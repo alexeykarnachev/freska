@@ -45,13 +45,6 @@ Shader load_shader(const std::string &vs_file_name, const std::string &fs_file_n
 }
 
 // -----------------------------------------------------------------------
-// node context
-class NodeContext {
-public:
-    virtual ~NodeContext() {}
-};
-
-// -----------------------------------------------------------------------
 // video source node
 class VideoSourceContext : public NodeContext {
 private:
@@ -122,16 +115,16 @@ public:
         UpdateTexture(texture, frame.data);
         return texture;
     }
+
+    void update(Node *node) override {
+        if (!node->context) node->context = new VideoSourceContext();
+        auto context = (VideoSourceContext *)node->context;
+
+        // TODO: put pins in some kind of map and access them by name,
+        // not by index
+        node->pins[0]._texture = context->get_texture();
+    }
 };
-
-void update_video_source(Node *node) {
-    if (!node->context) node->context = new VideoSourceContext();
-    auto context = (VideoSourceContext *)node->context;
-
-    // TODO: put pins in some kind of map and access them by name,
-    // not by index
-    node->pins[0]._texture = context->get_texture();
-}
 
 // -----------------------------------------------------------------------
 // color correction node
@@ -193,14 +186,14 @@ public:
         EndShaderMode();
         EndTextureMode();
     }
-};
 
-void update_color_correction(Node *node) {
-    if (!node->context) node->context = new ColorCorrectionContext();
-    auto context = (ColorCorrectionContext *)node->context;
-    context->draw(node->pins);
-    node->pins.back()._texture = context->render_texture.texture;
-}
+    void update(Node *node) override {
+        if (!node->context) node->context = new ColorCorrectionContext();
+        auto context = (ColorCorrectionContext *)node->context;
+        context->draw(node->pins);
+        node->pins.back()._texture = context->render_texture.texture;
+    }
+};
 
 // -----------------------------------------------------------------------
 // graph
@@ -250,10 +243,10 @@ Pin Pin::create_color(PinKind kind, std::string name, Vector3 val) {
 }
 
 Node::Node() = default;
-Node::Node(std::string name, std::vector<Pin> pins, void (*update)(Node *))
+Node::Node(std::string name, std::vector<Pin> pins, NodeContext *context)
     : name(name)
     , pins(pins)
-    , update(update) {}
+    , context(context) {}
 
 Link::Link() = default;
 Link::Link(int start_pin_id, int end_pin_id)
@@ -263,7 +256,7 @@ Link::Link(int start_pin_id, int end_pin_id)
 void Graph::update() {
     // TODO: this is incorrect! Nodes must be sorted topologically
     for (auto &[name, node] : this->nodes) {
-        if (node.update) node.update(&node);
+        node.context->update(&node);
     }
 
     for (auto &[_, link] : this->links) {
@@ -286,30 +279,35 @@ void Graph::update() {
     }
 }
 
-Graph::Graph() {
-    this->node_templates["Video Source"] = Node(
-        "Video Source",
-        {
-            Pin::create_texture(PinKind::OUTPUT, "frame"),
-        },
-        update_video_source
-    );
+Node create_video_source_node() {
+    auto name = "Video Source";
+    auto context = new VideoSourceContext();
+    auto pins = {
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    return Node(name, pins, context);
+}
 
-    this->node_templates["Color Correction"] = Node(
-        "Color Correction",
-        {
-            Pin::create_texture(PinKind::INPUT, "frame"),
-            Pin::create_color(PinKind::MANUAL, "white_balance", {1.0, 1.0, 1.0}),
-            Pin::create_float(PinKind::MANUAL, "exposure", -1.0, -1.0, 10.0),
-            Pin::create_float(PinKind::MANUAL, "temperature", 1.0, 0.0, 2.0),
-            Pin::create_float(PinKind::MANUAL, "contrast", 1.0, 0.0, 3.0),
-            Pin::create_float(PinKind::MANUAL, "brightness", 0.0, -1.0, 1.0),
-            Pin::create_float(PinKind::MANUAL, "saturation", 1.0, 0.0, 5.0),
-            Pin::create_float(PinKind::MANUAL, "gamma", 1.0, 0.0, 4.0),
-            Pin::create_texture(PinKind::OUTPUT, "frame"),
-        },
-        update_color_correction
-    );
+Node create_color_correction_node() {
+    auto name = "Color Correction";
+    auto context = new ColorCorrectionContext();
+    auto pins = {
+        Pin::create_texture(PinKind::INPUT, "frame"),
+        Pin::create_color(PinKind::MANUAL, "white_balance", {1.0, 1.0, 1.0}),
+        Pin::create_float(PinKind::MANUAL, "exposure", -1.0, -1.0, 10.0),
+        Pin::create_float(PinKind::MANUAL, "temperature", 1.0, 0.0, 2.0),
+        Pin::create_float(PinKind::MANUAL, "contrast", 1.0, 0.0, 3.0),
+        Pin::create_float(PinKind::MANUAL, "brightness", 0.0, -1.0, 1.0),
+        Pin::create_float(PinKind::MANUAL, "saturation", 1.0, 0.0, 5.0),
+        Pin::create_float(PinKind::MANUAL, "gamma", 1.0, 0.0, 4.0),
+        Pin::create_texture(PinKind::OUTPUT, "frame"),
+    };
+    return Node(name, pins, context);
+}
+
+Graph::Graph() {
+    this->node_factory["Video Source"] = create_video_source_node;
+    this->node_factory["Color Correction"] = create_color_correction_node;
 }
 
 void Graph::delete_node(int node_id) {
